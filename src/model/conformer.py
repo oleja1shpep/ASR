@@ -54,7 +54,6 @@ class Conformer(nn.Module):
                 for _ in range(n_layers)
             ]
         )
-
         self.fc = nn.Linear(conformer_block_dim, n_tokens, bias=False)
 
     def forward(self, spectrogram, spectrogram_length, **batch):
