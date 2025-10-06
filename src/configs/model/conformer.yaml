@@ -1,0 +1,13 @@
+_target_: src.model.Conformer
+n_feats: 128
+n_layers: 5
+conformer_block_dim: 256
+initial_dropout_prob: 0.1
+ffn_droput_prob: 0.1
+ffn_expansion_factor: 4
+ffn_residual_factor: 0.5
+attn_num_heads: 4
+attn_dropout_prob: 0.1
+conv_kernel_size: 31
+conv_expansion_factor: 2
+conv_dropout_prob: 0.1
