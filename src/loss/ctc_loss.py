@@ -15,20 +15,5 @@ class CTCLossWrapper(CTCLoss):
             input_lengths=log_probs_length,
             target_lengths=text_encoded_length,
         )
-        if loss.isinf().any():
-            import pdb
-
-            pdb.set_trace()
-
-        # if torch.any(log_probs == torch.inf):
-        #     print("BLYAT log_probs")
-        # if torch.any(log_probs_length == torch.inf):
-        #     print("BLYAT log_probs_length")
-        # if torch.any(log_probs_length == 0):
-        #     print("BLYAT log_probs_length")
-        # if torch.any(text_encoded == torch.nan):
-        #     print("BLYAT text_encoded")
-        # if torch.any(text_encoded_length == torch.nan):
-        #     print("BLYAT text_encoded_length")
 
         return {"loss": loss}

@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from string import ascii_lowercase
 
 import torch
@@ -57,6 +58,43 @@ class CTCTextEncoder:
             raw_text (str): raw text with empty tokens and repetitions.
         """
         return "".join([self.ind2char[int(ind)] for ind in inds]).strip()
+
+    def expand_and_merge_beams(
+        self, dp: dict[tuple[str, str], float], cur_step_probs: torch.Tensor
+    ) -> dict[tuple[str, str], float]:
+        new_dp = defaultdict(float)
+
+        for (pref, last_char), prob in dp.items():
+            for idx, char in self.ind2char.items():
+                cur_prob = prob * cur_step_probs[idx]
+
+                if char == self.EMPTY_TOK:
+                    cur_pref = pref
+                elif last_char != char:
+                    cur_pref = pref + char
+                else:
+                    cur_pref = pref
+
+                new_dp[(cur_pref, char)] += cur_prob
+        return new_dp
+
+    def truncate_beams(
+        self, dp: dict[tuple[str, str], float], beam_size: int
+    ) -> dict[tuple[str, str], float]:
+        return dict(sorted(list(dp.items()), key=lambda x: -x[1])[:beam_size])
+
+    def my_ctc_beam_search(
+        self, probs: torch.Tensor, length: int, beam_size: int
+    ) -> str:
+        dp = {
+            ("", self.EMPTY_TOK): 1.0,
+        }
+        for idx in range(length):
+            cur_step_probs = probs[idx]
+            dp = self.expand_and_merge_beams(dp, cur_step_probs)
+            dp = self.truncate_beams(dp, beam_size)
+        (pref, _), _ = max(list(dp.items()), key=lambda x: x[1])
+        return pref.strip()
 
     def ctc_decode(self, inds) -> str:
         filtered = [inds[0]]
