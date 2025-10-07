@@ -30,7 +30,7 @@ class ArgmaxWERMetric(BaseMetric):
 
 
 class BeamSearchWERMetric(BaseMetric):
-    def __init__(self, text_encoder, beam_size=5, *args, **kwargs):
+    def __init__(self, text_encoder, beam_size=10, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.text_encoder = text_encoder
         self.beam_size = beam_size
