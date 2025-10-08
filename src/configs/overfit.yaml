@@ -8,7 +8,7 @@ defaults:
   - _self_
 optimizer:
   _target_: torch.optim.AdamW
-  lr: 5e-4
+  lr: 6e-4 # 5e-4
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.MultiStepLR
   milestones: []
@@ -18,7 +18,7 @@ text_encoder:
   _target_: src.text_encoder.CTCTextEncoder
 trainer:
   log_step: 1
-  n_epochs: 26
+  n_epochs: 40
   epoch_len: null
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml

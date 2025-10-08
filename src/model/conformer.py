@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.model.modules import ConformerBlock, Conv1dSubsampling, Conv2dSubampling
+from src.model.modules import ConformerBlock, Conv1dSubsampling, Conv2dSubsampling
 
 
 class Conformer(nn.Module):
@@ -33,10 +33,8 @@ class Conformer(nn.Module):
         """
         super().__init__()
 
-        self.conv_subsampling = Conv2dSubampling(1, conformer_block_dim)
-        self.linear = nn.Linear(
-            conformer_block_dim * ((n_feats - 1) // 2), conformer_block_dim
-        )
+        self.conv_subsampling = Conv1dSubsampling(n_feats, n_feats)
+        self.linear = nn.Linear(n_feats, conformer_block_dim)
         self.dropout1 = nn.Dropout(initial_dropout_prob)
         self.conformer_blocks = nn.ModuleList(
             [
@@ -68,7 +66,7 @@ class Conformer(nn.Module):
                 transformed lengths.
         """
         subsampled, output_lengths = self.conv_subsampling(
-            spectrogram.transpose(1, 2), spectrogram_length
+            spectrogram, spectrogram_length
         )
         outputs = self.dropout1(self.linear(subsampled))
 

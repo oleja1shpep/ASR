@@ -6,6 +6,7 @@ class Conv1dSubsampling(nn.Module):
     """
     Convolutional 1D subsampling (to 1/2 length)
     """
+
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
         self.layers = nn.Sequential(
@@ -24,7 +25,7 @@ class Conv1dSubsampling(nn.Module):
         return outputs.transpose(1, 2), output_lengths
 
 
-class Conv2dSubampling(nn.Module):
+class Conv2dSubsampling(nn.Module):
     """
     Convolutional 2D subsampling (to 1/2 length)
     """

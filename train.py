@@ -64,9 +64,10 @@ def main(config):
 
     epoch_len = config.trainer.get("epoch_len")
     if epoch_len is None:
-        config.lr_scheduler.steps_per_epoch = (
-            len(dataloaders["train"].dataset) // dataloaders["train"].batch_size
-        )
+        if hasattr(config.lr_scheduler, "steps_per_epoch"):
+            config.lr_scheduler.steps_per_epoch = (
+                len(dataloaders["train"].dataset) // dataloaders["train"].batch_size
+            )
 
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
 
