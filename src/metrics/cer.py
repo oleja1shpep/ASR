@@ -39,18 +39,21 @@ class BeamSearchCERMetric(BaseMetric):
         self, log_probs: Tensor, log_probs_length: Tensor, text: List[str], **kwargs
     ):
         cers = []
-        lengths = log_probs_length.detach().numpy()
-        beam_search_texts = [
-            self.text_encoder.my_ctc_beam_search(
-                probs,
-                length,
-                beam_size=self.beam_size,
-            )
-            for probs, length in zip(log_probs.cpu().exp(), lengths)
-        ]
+        # lengths = log_probs_length.detach().numpy()
+
+        # beam_search_texts = [
+        #     self.text_encoder.my_ctc_beam_search(
+        #         probs[:length],
+        #         beam_size=self.beam_size,
+        #     )
+        #     for probs, length in zip(log_probs.cpu().exp(), lengths)
+        # ]
+
+        beam_search_texts = self.text_encoder.ctc_beam_search(
+            log_probs.cpu(), log_probs_length
+        )
 
         for pred_text, target_text in zip(beam_search_texts, text):
             target_text = self.text_encoder.normalize_text(target_text)
-            pred_text = pred_text
             cers.append(calc_cer(target_text, pred_text))
         return sum(cers) / len(cers)

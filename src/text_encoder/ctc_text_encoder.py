@@ -3,6 +3,7 @@ from collections import defaultdict
 from string import ascii_lowercase
 
 import torch
+from torchaudio.models.decoder import ctc_decoder
 
 # TODO add CTC decode
 # TODO add BPE, LM, Beam Search support
@@ -29,6 +30,13 @@ class CTCTextEncoder:
 
         self.ind2char = dict(enumerate(self.vocab))
         self.char2ind = {v: k for k, v in self.ind2char.items()}
+
+        self.ctc_beam_search_decoder = ctc_decoder(
+            lexicon=None,
+            tokens=self.vocab,
+            blank_token=self.EMPTY_TOK,
+            sil_token=" ",
+        )
 
     def __len__(self):
         return len(self.vocab)
@@ -59,13 +67,16 @@ class CTCTextEncoder:
         """
         return "".join([self.ind2char[int(ind)] for ind in inds]).strip()
 
+    def ctc_beam_search(self, log_probs: torch.Tensor, lengths: torch.Tensor):
+        result = self.ctc_beam_search_decoder(log_probs.exp(), lengths)
+        predictions = [self.decode(hypos[0].tokens) for hypos in result]
+        return predictions
+
     def my_ctc_beam_search(
-        self, probs: torch.Tensor, length: int, beam_size: int, eps: float = 1e-10
+        self, probs: torch.Tensor, beam_size: int, eps: float = 1e-10
     ) -> str:
         beams = [("", self.EMPTY_TOK, 1.0)]
-        for idx in range(length):
-            cur_step_probs = probs[idx]
-
+        for idx, cur_step_probs in enumerate(probs):
             # expand and merge beams
             new_beams = {}
 

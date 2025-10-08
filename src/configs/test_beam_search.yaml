@@ -1,7 +1,7 @@
 defaults:
   - model: conformer
   - writer: wandb
-  - metrics: example
+  - metrics: beam_search_test
   - datasets: beam_search
   - dataloader: example
   - transforms: example_only_instance

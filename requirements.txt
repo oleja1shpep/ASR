@@ -16,3 +16,4 @@ isort
 pre-commit
 editdistance
 datasets
+flashlight-text

@@ -26,6 +26,7 @@ class ConvModule(nn.Module):
                 in_channels,
                 kernel_size=kernel_size,
                 padding=(kernel_size - 1) // 2,
+                groups=in_channels,
             ),  # depthwize
             nn.BatchNorm1d(in_channels),
             SwishActivation(),
