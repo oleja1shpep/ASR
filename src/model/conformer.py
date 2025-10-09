@@ -54,6 +54,16 @@ class Conformer(nn.Module):
         )
         self.fc = nn.Linear(conformer_block_dim, n_tokens, bias=False)
 
+    def get_key_padding_mask(self, spectrogram, lengths: torch.Tensor) -> torch.Tensor:
+        """
+        spectrogram: tensor of shape (B, S, d)
+        lengths: tensor of shape (B,)
+        """
+
+        idxs = torch.arange(spectrogram.shape[1])
+        mask = idxs >= lengths[:, None]
+        return mask.to(spectrogram.device)
+
     def forward(self, spectrogram, spectrogram_length, **batch):
         """
         Model forward method.
@@ -69,9 +79,9 @@ class Conformer(nn.Module):
             spectrogram, spectrogram_length
         )
         outputs = self.dropout1(self.linear(subsampled))
-
+        key_padding_mask = self.get_key_padding_mask(outputs, output_lengths)
         for block in self.conformer_blocks:
-            outputs = block(outputs)
+            outputs = block(outputs, key_padding_mask)
 
         outputs = self.fc(outputs)
         outputs = nn.functional.log_softmax(outputs, dim=-1)

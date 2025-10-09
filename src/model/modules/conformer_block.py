@@ -42,9 +42,9 @@ class ConformerBlock(nn.Module):
         )
         self.layernorm = nn.LayerNorm(block_dim)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, key_padding_mask: torch.Tensor) -> torch.Tensor:
         x = x + self.ffn1(x) * self.ffn_residual_factor
-        x = x + self.attention(x)
+        x = x + self.attention(x, key_padding_mask)
         x = x + self.conv(x)
         x = x + self.ffn2(x) * self.ffn_residual_factor
         return self.layernorm(x)
