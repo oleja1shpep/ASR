@@ -79,16 +79,17 @@ class Trainer(BaseTrainer):
         # logging scheme might be different for different partitions
         if mode == "train":  # the method is called only every self.log_step steps
             self.log_spectrogram(**batch)
-            self.log_audio(**batch)
+            self.log_audio(log_ori=True, **batch)
         else:
             # Log Stuff
             self.log_spectrogram(**batch)
             self.log_audio(**batch)
             self.log_predictions(**batch)
 
-    def log_audio(self, audio, ori_audio, **batch):
+    def log_audio(self, audio, ori_audio, log_ori=False, **batch):
         self.writer.add_audio("audio", audio[0], sample_rate=16000)
-        self.writer.add_audio("ori_audio", ori_audio[0], sample_rate=16000)
+        if log_ori:
+            self.writer.add_audio("ori_audio", ori_audio[0], sample_rate=16000)
 
     def log_spectrogram(self, spectrogram, **batch):
         spectrogram_for_plot = spectrogram[0].detach().cpu()
@@ -104,39 +105,32 @@ class Trainer(BaseTrainer):
 
         cpu_log_probs = log_probs.cpu()
 
-        argmax_inds = cpu_log_probs.argmax(-1).numpy()
-        argmax_inds = [
-            inds[: int(ind_len)]
-            for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
-        ]
-        argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
-        argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
+        # argmax_inds = cpu_log_probs.argmax(-1).numpy()
+        # argmax_inds = [
+        #     inds[: int(ind_len)]
+        #     for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
+        # ]
+        # argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
+        # argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
 
         beam_search_texts = self.text_encoder.ctc_beam_search(
             cpu_log_probs, log_probs_length
         )
 
-        tuples = list(
-            zip(beam_search_texts, argmax_texts, text, argmax_texts_raw, audio_path)
-        )
+        tuples = list(zip(beam_search_texts, text, audio_path))
 
         rows = {}
-        for beam_pred, pred, target, _, audio_path in tuples[:examples_to_log]:
+        for beam_pred, target, audio_path in tuples[:examples_to_log]:
             target = self.text_encoder.normalize_text(target)
-            wer = calc_wer(target, pred) * 100
-            cer = calc_cer(target, pred) * 100
 
             beam_wer = calc_wer(target, beam_pred) * 100
             beam_cer = calc_cer(target, beam_pred) * 100
 
             rows[Path(audio_path).name] = {
                 "target": target,
-                "argmax preds": pred,
-                "beam_search preds": beam_pred,
-                "wer": wer,
-                "cer": cer,
-                "beam_wer": beam_wer,
-                "beam_cer": beam_cer,
+                "predictions": beam_pred,
+                "wer": beam_wer,
+                "cer": beam_cer,
             }
         self.writer.add_table(
             "predictions", pd.DataFrame.from_dict(rows, orient="index")

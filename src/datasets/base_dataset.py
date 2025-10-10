@@ -92,7 +92,7 @@ class BaseDataset(Dataset):
         text = data_dict["text"]
         text_encoded = self.text_encoder.encode(text)
 
-        spectrogram = self.get_spectrogram(audio)
+        spectrogram = torch.clamp(self.get_spectrogram(audio), 1e-5).log()
         spectrogram = self.preprocess_spectrogram(spectrogram)
 
         instance_data = {
