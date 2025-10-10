@@ -3,7 +3,7 @@ from collections import defaultdict
 from string import ascii_lowercase
 
 import torch
-from torchaudio.models.decoder import ctc_decoder
+from torchaudio.models.decoder._ctc_decoder import ctc_decoder
 
 # TODO add CTC decode
 # TODO add BPE, LM, Beam Search support
@@ -15,12 +15,14 @@ from torchaudio.models.decoder import ctc_decoder
 class CTCTextEncoder:
     EMPTY_TOK = ""
 
-    def __init__(self, alphabet=None, **kwargs):
+    def __init__(self, beam_size=10, alphabet=None, **kwargs):
         """
         Args:
             alphabet (list): alphabet for language. If None, it will be
                 set to ascii
         """
+
+        self.beam_size = beam_size
 
         if alphabet is None:
             alphabet = list(ascii_lowercase + " ")
@@ -33,9 +35,12 @@ class CTCTextEncoder:
 
         self.ctc_beam_search_decoder = ctc_decoder(
             lexicon=None,
-            tokens=self.vocab,
+            tokens=self.vocab + ["|"],
             blank_token=self.EMPTY_TOK,
-            sil_token=" ",
+            sil_token="|",
+            beam_size=self.beam_size,
+            nbest=1,
+            log_add=True,
         )
 
     def __len__(self):
@@ -68,13 +73,16 @@ class CTCTextEncoder:
         return "".join([self.ind2char[int(ind)] for ind in inds]).strip()
 
     def ctc_beam_search(self, log_probs: torch.Tensor, lengths: torch.Tensor):
-        result = self.ctc_beam_search_decoder(log_probs.exp(), lengths)
-        predictions = [self.decode(hypos[0].tokens) for hypos in result]
+        result = self.ctc_beam_search_decoder(log_probs, lengths)
+        predictions = [
+            "".join(
+                self.ctc_beam_search_decoder.idxs_to_tokens(hypos[0].tokens)[1:-1]
+            ).strip()
+            for hypos in result
+        ]
         return predictions
 
-    def my_ctc_beam_search(
-        self, probs: torch.Tensor, beam_size: int, eps: float = 1e-10
-    ) -> str:
+    def my_ctc_beam_search(self, probs: torch.Tensor, eps: float = 1e-10) -> str:
         beams = [("", self.EMPTY_TOK, 1.0)]
         for idx, cur_step_probs in enumerate(probs):
             # expand and merge beams
@@ -107,7 +115,7 @@ class CTCTextEncoder:
                     for (pref, last_char), prob in new_beams.items()
                 ],
                 key=lambda x: -x[2],
-            )[:beam_size]
+            )[: self.beam_size]
 
         return beams[0][0].strip()
 
