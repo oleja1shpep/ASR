@@ -17,3 +17,4 @@ pre-commit
 editdistance
 datasets
 flashlight-text
+librosa

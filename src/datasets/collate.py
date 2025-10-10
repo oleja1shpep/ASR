@@ -27,6 +27,7 @@ def collate_fn(dataset_items: list[dict]):
     return dict(
         spectrogram=spectrogram,
         audio=[item["audio"] for item in dataset_items],
+        ori_audio=[item["ori_audio"] for item in dataset_items],
         text=[item["text"] for item in dataset_items],
         text_encoded=text_encoded,
         text_encoded_length=text_encoded_length,

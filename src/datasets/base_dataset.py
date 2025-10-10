@@ -62,6 +62,13 @@ class BaseDataset(Dataset):
         self.text_encoder = text_encoder
         self.target_sr = target_sr
         self.instance_transforms = instance_transforms
+        if self.instance_transforms is not None:
+            if torch.cuda.is_available():
+                for key in ["spec_augs", "wav_augs"]:
+                    if key in self.instance_transforms:
+                        self.instance_transforms[key] = self.instance_transforms[
+                            key
+                        ].cuda()
 
     def __getitem__(self, ind):
         """
@@ -80,13 +87,16 @@ class BaseDataset(Dataset):
         """
         data_dict = self._index[ind]
         audio_path = data_dict["path"]
-        audio = self.load_audio(audio_path)
+        ori_audio = self.load_audio(audio_path)
+        audio = self.preprocess_audio(ori_audio)
         text = data_dict["text"]
         text_encoded = self.text_encoder.encode(text)
 
         spectrogram = self.get_spectrogram(audio)
+        spectrogram = self.preprocess_spectrogram(spectrogram)
 
         instance_data = {
+            "ori_audio": ori_audio,
             "audio": audio,
             "spectrogram": spectrogram,
             "text": text,
@@ -127,6 +137,20 @@ class BaseDataset(Dataset):
         """
         return self.instance_transforms["get_spectrogram"](audio)
 
+    def preprocess_audio(self, audio: torch.Tensor) -> torch.Tensor:
+        processed_audio = audio.cuda()
+        if self.instance_transforms is not None:
+            if "wav_augs" in self.instance_transforms:
+                processed_audio = self.instance_transforms["wav_augs"](processed_audio)
+        return processed_audio.cpu()
+
+    def preprocess_spectrogram(self, spec: torch.Tensor):
+        spec = spec.cuda()
+        if self.instance_transforms is not None:
+            if "spec_augs" in self.instance_transforms:
+                spec = self.instance_transforms["spec_augs"](spec)
+        return spec.cpu()
+
     def preprocess_data(self, instance_data):
         """
         Preprocess data with instance transforms.
@@ -143,7 +167,7 @@ class BaseDataset(Dataset):
         """
         if self.instance_transforms is not None:
             for transform_name in self.instance_transforms.keys():
-                if transform_name == "get_spectrogram":
+                if transform_name in ["spec_augs", "wav_augs", "get_spectrogram"]:
                     continue  # skip special key
                 instance_data[transform_name] = self.instance_transforms[
                     transform_name
