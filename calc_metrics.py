@@ -26,8 +26,8 @@ def main(config):
         *[m.name for m in metrics["inference"]],
     )
 
-    pred_dir = ROOT_PATH / config.predictions_dir
-    target_dir = ROOT_PATH / config.target_dir
+    pred_dir = Path(config.predictions_dir)
+    target_dir = Path(config.target_dir)
 
     if not (target_dir.exists()):
         raise ValueError("target directory seems to be non-existing")

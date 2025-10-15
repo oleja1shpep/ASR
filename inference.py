@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 
 import hydra
 import torch
@@ -49,7 +50,7 @@ def main(config):
         )
 
     # save_path for model predictions
-    save_path = ROOT_PATH / config.inferencer.save_path
+    save_path = Path(config.inferencer.save_path)
     save_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(
