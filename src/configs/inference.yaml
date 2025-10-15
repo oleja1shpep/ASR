@@ -8,6 +8,6 @@ defaults:
 inferencer:
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
   device: auto # device name or "auto"
-  save_path: "example" # any name here, can be a dataset name
+  save_path: "output" # any name here, can be a dataset name
   seed: 1
   from_pretrained: "saved/model_best.pth" # path to the pretrained model

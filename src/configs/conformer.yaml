@@ -14,7 +14,7 @@ lr_scheduler:
   _target_: torch.optim.lr_scheduler.OneCycleLR
   max_lr: 3e-4
   final_div_factor: 3
-  pct_start: 0.009
+  pct_start: 0.0025
   steps_per_epoch: ${trainer.epoch_len}
   epochs: ${trainer.n_epochs}
   anneal_strategy: cos
@@ -25,7 +25,7 @@ text_encoder:
   beam_size: 50
 trainer:
   log_step: 200
-  n_epochs: 20
+  n_epochs: 8
   epoch_len: null
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
