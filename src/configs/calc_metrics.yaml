@@ -1,0 +1,9 @@
+defaults:
+  - metrics: beam_search
+  - _self_
+
+text_encoder:
+  _target_: src.text_encoder.CTCTextEncoder
+  beam_size: 100
+target_dir: test_data/transcriptions
+predictions_dir: data/saved/predictions/custom

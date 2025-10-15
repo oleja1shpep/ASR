@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from tqdm.auto import tqdm
 
@@ -98,7 +100,7 @@ class Inferencer(BaseTrainer):
             part_logs[part] = logs
         return part_logs
 
-    def process_batch(self, batch_idx, batch, metrics, part):
+    def process_batch(self, batch_idx, batch, metrics, part, save_dir):
         """
         Run batch through the model, compute metrics, and
         save predictions to disk.
@@ -120,8 +122,6 @@ class Inferencer(BaseTrainer):
                 the dataloader (possibly transformed via batch transform)
                 and model outputs.
         """
-        # TODO change inference logic so it suits ASR assignment
-        # and task pipeline
 
         batch = self.move_batch_to_device(batch)
         batch = self.transform_batch(batch)  # transform batch on device -- faster
@@ -129,33 +129,31 @@ class Inferencer(BaseTrainer):
         outputs = self.model(**batch)
         batch.update(outputs)
 
+        preds = None
         if metrics is not None:
             for met in self.metrics["inference"]:
-                metrics.update(met.name, met(**batch))
+                # precompute for beam search
+                if met.name.endswith("(Beam_Search)"):
+                    preds = met.precompute_preds(**batch)
+                    break
+            for met in self.metrics["inference"]:
+                if met.name.endswith("(Beam_Search)"):
+                    metrics.update(met.name, met(preds=preds, **batch))
+                else:
+                    metrics.update(met.name, met(**batch))
 
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
+        cpu_log_probs = batch["log_probs"].cpu()
 
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
-
-        for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
-
-            output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
-
-            if self.save_path is not None:
-                # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+        beam_search_texts = self.text_encoder.ctc_beam_search(
+            cpu_log_probs, batch["log_probs_length"]
+        )
+        tuples = list(zip(beam_search_texts, batch["audio_path"]))
+        for pred, audio_path in tuples:
+            utterance_file = Path(audio_path).stem + ".txt"
+            with open(Path.joinpath(save_dir, utterance_file), "w") as f:
+                f.write(pred)
 
         return batch
 
@@ -179,6 +177,8 @@ class Inferencer(BaseTrainer):
         if self.save_path is not None:
             (self.save_path / part).mkdir(exist_ok=True, parents=True)
 
+        save_dir = Path.joinpath(self.save_path, part)
+
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
@@ -190,6 +190,7 @@ class Inferencer(BaseTrainer):
                     batch=batch,
                     part=part,
                     metrics=self.evaluation_metrics,
+                    save_dir=save_dir,
                 )
 
         return self.evaluation_metrics.result()

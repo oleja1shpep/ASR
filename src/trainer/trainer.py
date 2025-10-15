@@ -58,13 +58,17 @@ class Trainer(BaseTrainer):
             metrics.update(loss_name, batch[loss_name].item())
 
         preds = None
+        # precompute for beam search
         for met in metric_funcs:
-            if (met.name == "CER_(Beam_Search)") or (met.name == "WER_(Beam_Search)"):
+            if met.name.endswith("(Beam_Search)"):
                 preds = met.precompute_preds(**batch)
                 break
 
         for met in metric_funcs:
-            metrics.update(met.name, met(preds=preds, **batch))
+            if met.name.endswith("(Beam_Search)"):
+                metrics.update(met.name, met(preds=preds, **batch))
+            else:
+                metrics.update(met.name, met(**batch))
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):

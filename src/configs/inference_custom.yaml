@@ -1,8 +1,8 @@
 defaults:
   - model: conformer
   - metrics: beam_search
-  - datasets: inference # we do not want to run inference on training data
-  - dataloader: main
+  - datasets: custom # we do not want to run inference on training data
+  - dataloader: custom
   - transforms: main
   - _self_
 text_encoder:
@@ -13,4 +13,7 @@ inferencer:
   device: auto # device name or "auto"
   save_path: "predictions" # any name here, can be a dataset name
   seed: 1
-  from_pretrained: null # path to the pretrained model
+  from_pretrained: "./saved/fm-SM-long/model_best.pth" # path to the pretrained model
+datasets:
+  custom:
+    data_dir: test_data
