@@ -1,58 +1,47 @@
 # Automatic Speech Recognition (ASR) with PyTorch
 
-<p align="center">
-  <a href="#about">About</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#how-to-use">How To Use</a> •
-  <a href="#credits">Credits</a> •
-  <a href="#license">License</a>
-</p>
-
-## About
-
-This repository contains a template for solving ASR task with PyTorch. This template branch is a part of the [HSE DLA course](https://github.com/markovka17/dla) ASR homework. Some parts of the code are missing (or do not follow the most optimal design choices...) and students are required to fill these parts themselves (as well as writing their own models, etc.).
-
-See the task assignment [here](https://github.com/markovka17/dla/tree/2024/hw1_asr).
 
 ## Installation
 
 Follow these steps to install the project:
 
-0. (Optional) Create and activate new environment using [`conda`](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html) or `venv` ([`+pyenv`](https://github.com/pyenv/pyenv)).
+1. (Optional) Create and activate new environment using [`conda`](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html).
 
-   a. `conda` version:
 
    ```bash
    # create env
-   conda create -n project_env python=PYTHON_VERSION
+   conda create -n project_env python=3.10
 
    # activate env
    conda activate project_env
    ```
 
-   b. `venv` (`+pyenv`) version:
-
-   ```bash
-   # create env
-   ~/.pyenv/versions/PYTHON_VERSION/bin/python3 -m venv project_env
-
-   # alternatively, using default python version
-   python3 -m venv project_env
-
-   # activate env
-   source project_env/bin/activate
-   ```
-
-1. Install all required packages
+2. Install all required packages
 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. Install `pre-commit`:
+## Checkpoints
+
+1. Model checkpoint:
+
    ```bash
-   pre-commit install
+   gdown https://drive.google.com/uc?id=1LVKpi6Nu7Rk8FcNs88paNXbCqe52kl7e -O model_best.pth
    ```
+
+2. LM download
+
+   ```python
+   from torchaudio.models.decoder._ctc_decoder import download_pretrained_files
+
+
+   download_pretrained_files("librispeech-3-gram")
+   ```
+
+3. Logs:
+
+   a. Overfit logs download
 
 ## How To Use
 
@@ -69,6 +58,14 @@ To run inference (evaluate the model or save predictions):
 ```bash
 python3 inference.py HYDRA_CONFIG_ARGUMENTS
 ```
+
+To run inference on custom dataset
+
+```bash
+python3 inference.py -cn=inference_custom HYDRA_CONFIG_ARGUMENTS
+```
+
+More information about inference in demo.ipynb
 
 ## Credits
 

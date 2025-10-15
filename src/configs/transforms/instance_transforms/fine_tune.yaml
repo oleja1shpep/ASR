@@ -24,9 +24,9 @@ train:
     transforms:
       - _target_: src.transforms.spec_augs.TimeFreqMasking
         freq_size: 10
-        freq_repeats: 2
+        freq_repeats: 3
         time_size: 10
-        time_repeats: 10
+        time_repeats: 15
 
 inference:
   get_spectrogram:
