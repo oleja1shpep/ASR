@@ -4,13 +4,13 @@ from torch import nn
 
 class Conv1dSubsampling(nn.Module):
     """
-    Convolutional 1D subsampling (to 1/2 length)
+    Convolutional 1D subsampling (to 1/3 length)
     """
 
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
         self.layers = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=2),
+            nn.Conv1d(in_channels, out_channels, kernel_size=5, stride=3, padding=1),
             nn.ReLU(),
         )
 
@@ -21,7 +21,7 @@ class Conv1dSubsampling(nn.Module):
         inputs : tensor of shape (batch, dim, time)
         """
         outputs = self.layers(inputs)
-        output_lengths = (input_lengths - 1) // 2
+        output_lengths = (input_lengths) // 3
         return outputs.transpose(1, 2), output_lengths
 
 

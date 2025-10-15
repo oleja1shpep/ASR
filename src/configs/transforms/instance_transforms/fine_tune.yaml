@@ -8,23 +8,25 @@ train:
       - _target_: src.transforms.wav_augs.PitchShift
         pitch_factor: [-3, 3]
         sample_rate: 16000
-        p: 0
+        p: 0.75
       - _target_: src.transforms.wav_augs.TimeStretch
         stretch_factor: [0.9, 1.1]
         p: 0
       - _target_: src.transforms.wav_augs.Noise
         std: 0.005
-        p: 0
+        p: 0.75
       - _target_: src.transforms.wav_augs.Gain
         min_gain_in_db: -15
-        max_gain_in_db: 6
-        p: 0
+        max_gain_in_db: 5
+        p: 0.75
   spec_augs:
     _target_: torchvision.transforms.v2.Compose
     transforms:
       - _target_: src.transforms.spec_augs.TimeFreqMasking
-        freq_size: 20
-        time_size: 100
+        freq_size: 10
+        freq_repeats: 2
+        time_size: 10
+        time_repeats: 10
 
 inference:
   get_spectrogram:

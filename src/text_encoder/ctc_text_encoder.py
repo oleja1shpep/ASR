@@ -3,10 +3,12 @@ from collections import defaultdict
 from string import ascii_lowercase
 
 import torch
-from torchaudio.models.decoder._ctc_decoder import ctc_decoder
+from torchaudio.models.decoder._ctc_decoder import (
+    ctc_decoder,
+    download_pretrained_files,
+)
 
-# TODO add CTC decode
-# TODO add BPE, LM, Beam Search support
+# TODO add BPE support
 # Note: think about metrics and encoder
 # The design can be remarkably improved
 # to calculate stuff more efficiently and prettier
@@ -15,12 +17,16 @@ from torchaudio.models.decoder._ctc_decoder import ctc_decoder
 class CTCTextEncoder:
     EMPTY_TOK = ""
 
-    def __init__(self, beam_size=10, alphabet=None, **kwargs):
+    def __init__(
+        self, beam_size=10, alphabet=None, use_torch_beam_search=True, **kwargs
+    ):
         """
         Args:
             alphabet (list): alphabet for language. If None, it will be
                 set to ascii
         """
+
+        self.use_torch_beam_search = use_torch_beam_search
 
         self.beam_size = beam_size
 
@@ -33,15 +39,27 @@ class CTCTextEncoder:
         self.ind2char = dict(enumerate(self.vocab))
         self.char2ind = {v: k for k, v in self.ind2char.items()}
 
-        self.ctc_beam_search_decoder = ctc_decoder(
-            lexicon=None,
-            tokens=self.vocab + ["|"],
-            blank_token=self.EMPTY_TOK,
-            sil_token="|",
-            beam_size=self.beam_size,
-            nbest=1,
-            log_add=True,
-        )
+        if use_torch_beam_search:
+            files = download_pretrained_files("librispeech-3-gram")
+
+            with open(files.tokens, "r") as f:
+                tokens = f.readlines()
+                self.vocab = [t.strip() for t in tokens]
+
+            self.ind2char = dict(enumerate(self.vocab))
+            self.char2ind = {v: k for k, v in self.ind2char.items()}
+            self.char2ind[" "] = self.char2ind["|"]
+            self.ind2char[self.char2ind[" "]] = " "
+            self.ind2char[self.char2ind["-"]] = ""
+
+            self.ctc_beam_search_decoder = ctc_decoder(
+                lexicon=files.lexicon,
+                tokens=files.tokens,
+                lm=files.lm,
+                beam_size=self.beam_size,
+                nbest=1,
+                log_add=True,
+            )
 
     def __len__(self):
         return len(self.vocab)
@@ -70,17 +88,31 @@ class CTCTextEncoder:
         Returns:
             raw_text (str): raw text with empty tokens and repetitions.
         """
-        return "".join([self.ind2char[int(ind)] for ind in inds]).strip()
+        res = "".join([self.ind2char[int(ind)] for ind in inds]).strip()
+        if len(res) == 0:
+            return res
+        final_res = [res[0]]
+
+        # after beam search can be multiple spaces together
+        for i in range(1, len(res)):
+            if res[i] == " ":
+                if res[i] == res[i - 1]:
+                    continue
+            final_res.append(res[i])
+        return "".join(final_res)
 
     def ctc_beam_search(self, log_probs: torch.Tensor, lengths: torch.Tensor):
-        result = self.ctc_beam_search_decoder(log_probs, lengths)
-        predictions = [
-            "".join(
-                self.ctc_beam_search_decoder.idxs_to_tokens(hypos[0].tokens)[1:-1]
-            ).strip()
-            for hypos in result
-        ]
-        return predictions
+        if self.use_torch_beam_search:
+            result = self.ctc_beam_search_decoder(log_probs, lengths)
+            predictions = [
+                "".join(self.decode(hypos[0].tokens)).strip() for hypos in result
+            ]
+            return predictions
+        else:
+            return [
+                self.my_ctc_beam_search(log_prob[:length])
+                for log_prob, length in zip(log_probs, lengths)
+            ]
 
     def my_ctc_beam_search(self, probs: torch.Tensor, eps: float = 1e-10) -> str:
         beams = [("", self.EMPTY_TOK, 1.0)]
@@ -91,8 +123,6 @@ class CTCTextEncoder:
             for pref, last_char, prob in beams:
                 for idx, char in self.ind2char.items():
                     char_prob = cur_step_probs[idx]
-                    if char_prob < eps:
-                        continue
                     cur_prob = prob * char_prob
 
                     if char == self.EMPTY_TOK:

@@ -57,8 +57,14 @@ class Trainer(BaseTrainer):
         for loss_name in self.config.writer.loss_names:
             metrics.update(loss_name, batch[loss_name].item())
 
+        preds = None
         for met in metric_funcs:
-            metrics.update(met.name, met(**batch))
+            if (met.name == "CER_(Beam_Search)") or (met.name == "WER_(Beam_Search)"):
+                preds = met.precompute_preds(**batch)
+                break
+
+        for met in metric_funcs:
+            metrics.update(met.name, met(preds=preds, **batch))
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):
@@ -99,19 +105,10 @@ class Trainer(BaseTrainer):
     def log_predictions(
         self, text, log_probs, log_probs_length, audio_path, examples_to_log=10, **batch
     ):
-        # TODO add beam search
         # Note: by improving text encoder and metrics design
         # this logging can also be improved significantly
 
         cpu_log_probs = log_probs.cpu()
-
-        # argmax_inds = cpu_log_probs.argmax(-1).numpy()
-        # argmax_inds = [
-        #     inds[: int(ind_len)]
-        #     for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
-        # ]
-        # argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
-        # argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
 
         beam_search_texts = self.text_encoder.ctc_beam_search(
             cpu_log_probs, log_probs_length

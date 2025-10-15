@@ -18,3 +18,4 @@ editdistance
 datasets
 flashlight-text
 librosa
+https://github.com/kpu/kenlm/archive/master.zip

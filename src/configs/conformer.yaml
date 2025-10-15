@@ -2,19 +2,19 @@ defaults:
   - model: conformer
   - writer: wandb
   - metrics: beam_search
-  - datasets: example
-  - dataloader: example
-  - transforms: example
+  - datasets: main
+  - dataloader: main
+  - transforms: main
   - _self_
 optimizer:
-  _target_: torch.optim.AdamW
+  _target_: torch.optim.Adam
   lr: 1e-3
   weight_decay: 1e-6
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.OneCycleLR
   max_lr: 3e-4
-  final_div_factor: 20
-  pct_start: 0.1
+  final_div_factor: 3
+  pct_start: 0.009
   steps_per_epoch: ${trainer.epoch_len}
   epochs: ${trainer.n_epochs}
   anneal_strategy: cos
@@ -22,14 +22,14 @@ loss_function:
   _target_: src.loss.CTCLossWrapper
 text_encoder:
   _target_: src.text_encoder.CTCTextEncoder
-  beam_size: 5
+  beam_size: 50
 trainer:
-  log_step: 50
-  n_epochs: 5
-  epoch_len: 500
+  log_step: 200
+  n_epochs: 20
+  epoch_len: null
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
   resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
-  from_pretrained: saved/overfit-SM/model_best.pth
+  from_pretrained: saved/overfit-SM-lm/model_best.pth
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name
   monitor: "min val_WER_(Beam_Search)" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
