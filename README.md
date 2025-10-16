@@ -27,7 +27,7 @@ Follow these steps to install the project:
 1. Model checkpoint:
 
    ```bash
-   gdown https://drive.google.com/uc?id=1LVKpi6Nu7Rk8FcNs88paNXbCqe52kl7e -O model_best.pth
+   gdown https://drive.google.com/uc?id=18NkqGrdo5GEPKDfBSRvbInnYG2kPDskY -O model_best.pth
    ```
 
 2. LM download
