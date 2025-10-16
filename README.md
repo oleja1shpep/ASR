@@ -39,9 +39,14 @@ Follow these steps to install the project:
    download_pretrained_files("librispeech-3-gram")
    ```
 
-3. Logs:
+3. RIR samples for training with Impulse aug:
 
-   a. Overfit logs download
+   ```bash
+   cd ASR
+   ./rir_download.sh
+   ```
+
+
 
 ## How To Use
 

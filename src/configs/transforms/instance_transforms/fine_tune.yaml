@@ -9,12 +9,12 @@ train:
         pitch_factor: [-3, 3]
         sample_rate: 16000
         p: 0.75
-      - _target_: src.transforms.wav_augs.TimeStretch
-        stretch_factor: [0.9, 1.1]
-        p: 0
+      - _target_: src.transforms.wav_augs.Impulse
+        p: 0.9
+        sample_rate: 16000
       - _target_: src.transforms.wav_augs.Noise
-        std: 0.005
-        p: 0.75
+        std: 0.001
+        p: 0.5
       - _target_: src.transforms.wav_augs.Gain
         min_gain_in_db: -15
         max_gain_in_db: 5
