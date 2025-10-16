@@ -12,7 +12,7 @@ optimizer:
   weight_decay: 1e-6
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.OneCycleLR
-  max_lr: 1e-5
+  max_lr: 3e-4
   final_div_factor: 3
   pct_start: 0.01
   steps_per_epoch: ${trainer.epoch_len}
@@ -25,11 +25,11 @@ text_encoder:
   beam_size: 50
 trainer:
   log_step: 100
-  n_epochs: 10
+  n_epochs: 20
   epoch_len: null
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
-  resume_from: ./model_best.pth # null or path to the checkpoint dir with *.pth and config.yaml
-  from_pretrained: null # saved/conformer-SM-lm-pretrain/model_best.pth
+  resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
+  from_pretrained: null
   device: auto # device name or "auto"
   override: True # if True, will override the previous run with the same name
   monitor: "min val_WER_(Beam_Search)" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
