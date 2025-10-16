@@ -30,16 +30,7 @@ Follow these steps to install the project:
    gdown https://drive.google.com/uc?id=18NkqGrdo5GEPKDfBSRvbInnYG2kPDskY -O model_best.pth
    ```
 
-2. LM download
-
-   ```python
-   from torchaudio.models.decoder._ctc_decoder import download_pretrained_files
-
-
-   download_pretrained_files("librispeech-3-gram")
-   ```
-
-3. RIR samples for training with Impulse aug:
+2. RIR samples for training with Impulse aug:
 
    ```bash
    cd ASR
