@@ -62,6 +62,7 @@ def main(config):
     )
 
     inferencer.run_inference()
+    print("Inference done succesfully!")
 
 
 if __name__ == "__main__":
