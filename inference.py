@@ -41,15 +41,6 @@ def main(config):
     model = instantiate(config.model, n_tokens=len(text_encoder)).to(device)
     print(model)
 
-    # get metrics
-    metrics = {"inference": []}
-    if config.metrics is not None:
-        for metric_config in config.metrics.get("inference", []):
-            # use text_encoder in metrics
-            metrics["inference"].append(
-                instantiate(metric_config, text_encoder=text_encoder)
-            )
-
     # save_path for model predictions
     save_preds_path = Path(config.inferencer.save_preds_path)
     save_preds_path.mkdir(exist_ok=True, parents=True)
@@ -67,16 +58,10 @@ def main(config):
         batch_transforms=batch_transforms,
         save_preds_path=save_preds_path,
         save_targets_path=save_targets_path,
-        metrics=metrics,
         skip_model_load=False,
     )
 
-    logs = inferencer.run_inference()
-
-    for part in logs.keys():
-        for key, value in logs[part].items():
-            full_key = part + "_" + key
-            print(f"    {full_key:15s}: {value}")
+    inferencer.run_inference()
 
 
 if __name__ == "__main__":

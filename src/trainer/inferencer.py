@@ -25,7 +25,6 @@ class Inferencer(BaseTrainer):
         text_encoder,
         save_preds_path,
         save_targets_path=None,
-        metrics=None,
         batch_transforms=None,
         skip_model_load=False,
     ):
@@ -74,16 +73,6 @@ class Inferencer(BaseTrainer):
         self.save_preds_path = save_preds_path
         self.save_targets_path = save_targets_path
 
-        # define metrics
-        self.metrics = metrics
-        if self.metrics is not None:
-            self.evaluation_metrics = MetricTracker(
-                *[m.name for m in self.metrics["inference"]],
-                writer=None,
-            )
-        else:
-            self.evaluation_metrics = None
-
         if not skip_model_load:
             # init model
             self._from_pretrained(config.inferencer.get("from_pretrained"))
@@ -102,9 +91,7 @@ class Inferencer(BaseTrainer):
             part_logs[part] = logs
         return part_logs
 
-    def process_batch(
-        self, batch_idx, batch, metrics, part, save_preds_dir, save_targets_dir
-    ):
+    def process_batch(self, batch_idx, batch, part, save_preds_dir, save_targets_dir):
         """
         Run batch through the model, compute metrics, and
         save predictions to disk.
@@ -116,9 +103,6 @@ class Inferencer(BaseTrainer):
             batch_idx (int): the index of the current batch.
             batch (dict): dict-based batch containing the data from
                 the dataloader.
-            metrics (MetricTracker): MetricTracker object that computes
-                and aggregates the metrics. The metrics depend on the type
-                of the partition (train or inference).
             part (str): name of the partition. Used to define proper saving
                 directory.
             save_preds_dir (str): name of directory to save predictions
@@ -140,13 +124,6 @@ class Inferencer(BaseTrainer):
         beam_search_texts = self.text_encoder.ctc_beam_search(
             cpu_log_probs, batch["log_probs_length"]
         )
-
-        if metrics is not None:
-            for met in self.metrics["inference"]:
-                if met.name.endswith("(Beam_Search)"):
-                    metrics.update(met.name, met(preds=beam_search_texts, **batch))
-                else:
-                    metrics.update(met.name, met(**batch))
 
         tuples = list(zip(beam_search_texts, batch["text"], batch["audio_path"]))
         for pred, target, audio_path in tuples:
@@ -173,8 +150,6 @@ class Inferencer(BaseTrainer):
         self.is_train = False
         self.model.eval()
 
-        self.evaluation_metrics.reset()
-
         # create Save dir
         if self.save_preds_path is not None:
             (self.save_preds_path / part).mkdir(exist_ok=True, parents=True)
@@ -194,9 +169,6 @@ class Inferencer(BaseTrainer):
                     batch_idx=batch_idx,
                     batch=batch,
                     part=part,
-                    metrics=self.evaluation_metrics,
                     save_preds_dir=save_preds_dir,
                     save_targets_dir=save_targets_dir,
                 )
-
-        return self.evaluation_metrics.result()

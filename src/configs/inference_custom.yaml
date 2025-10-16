@@ -1,6 +1,5 @@
 defaults:
   - model: conformer
-  - metrics: beam_search
   - datasets: custom # we do not want to run inference on training data
   - dataloader: custom
   - transforms: main
