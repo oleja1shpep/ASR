@@ -11,9 +11,10 @@ text_encoder:
 inferencer:
   device_tensors: ["spectrogram", "text_encoded"] # which tensors should be on device (ex. GPU)
   device: auto # device name or "auto"
-  save_path: "predictions" # any name here, can be a dataset name
+  save_preds_path: "predictions" # path for saving predictions
+  save_targets_path: null # None if dont want to save targets
   seed: 1
-  from_pretrained: "./saved/fm-SM-long/model_best.pth" # path to the pretrained model
+  from_pretrained: null # path to the pretrained model
 datasets:
   custom:
     data_dir: test_data

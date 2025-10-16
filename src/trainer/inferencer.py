@@ -23,7 +23,8 @@ class Inferencer(BaseTrainer):
         device,
         dataloaders,
         text_encoder,
-        save_path,
+        save_preds_path,
+        save_targets_path=None,
         metrics=None,
         batch_transforms=None,
         skip_model_load=False,
@@ -70,7 +71,8 @@ class Inferencer(BaseTrainer):
 
         # path definition
 
-        self.save_path = save_path
+        self.save_preds_path = save_preds_path
+        self.save_targets_path = save_targets_path
 
         # define metrics
         self.metrics = metrics
@@ -100,7 +102,9 @@ class Inferencer(BaseTrainer):
             part_logs[part] = logs
         return part_logs
 
-    def process_batch(self, batch_idx, batch, metrics, part, save_dir):
+    def process_batch(
+        self, batch_idx, batch, metrics, part, save_preds_dir, save_targets_dir
+    ):
         """
         Run batch through the model, compute metrics, and
         save predictions to disk.
@@ -117,6 +121,8 @@ class Inferencer(BaseTrainer):
                 of the partition (train or inference).
             part (str): name of the partition. Used to define proper saving
                 directory.
+            save_preds_dir (str): name of directory to save predictions
+            save_targets_dir (str): name of directory to save targets
         Returns:
             batch (dict): dict-based batch containing the data from
                 the dataloader (possibly transformed via batch transform)
@@ -129,31 +135,27 @@ class Inferencer(BaseTrainer):
         outputs = self.model(**batch)
         batch.update(outputs)
 
-        preds = None
-        if metrics is not None:
-            for met in self.metrics["inference"]:
-                # precompute for beam search
-                if met.name.endswith("(Beam_Search)"):
-                    preds = met.precompute_preds(**batch)
-                    break
-            for met in self.metrics["inference"]:
-                if met.name.endswith("(Beam_Search)"):
-                    metrics.update(met.name, met(preds=preds, **batch))
-                else:
-                    metrics.update(met.name, met(**batch))
-
-        # Some saving logic. This is an example
-        # Use if you need to save predictions on disk
         cpu_log_probs = batch["log_probs"].cpu()
 
         beam_search_texts = self.text_encoder.ctc_beam_search(
             cpu_log_probs, batch["log_probs_length"]
         )
-        tuples = list(zip(beam_search_texts, batch["audio_path"]))
-        for pred, audio_path in tuples:
+
+        if metrics is not None:
+            for met in self.metrics["inference"]:
+                if met.name.endswith("(Beam_Search)"):
+                    metrics.update(met.name, met(preds=beam_search_texts, **batch))
+                else:
+                    metrics.update(met.name, met(**batch))
+
+        tuples = list(zip(beam_search_texts, batch["text"], batch["audio_path"]))
+        for pred, target, audio_path in tuples:
             utterance_file = Path(audio_path).stem + ".txt"
-            with open(Path.joinpath(save_dir, utterance_file), "w") as f:
+            with open(Path.joinpath(save_preds_dir, utterance_file), "w") as f:
                 f.write(pred)
+            if save_targets_dir is not None:
+                with open(Path.joinpath(save_targets_dir, utterance_file), "w") as f:
+                    f.write(target)
 
         return batch
 
@@ -174,10 +176,13 @@ class Inferencer(BaseTrainer):
         self.evaluation_metrics.reset()
 
         # create Save dir
-        if self.save_path is not None:
-            (self.save_path / part).mkdir(exist_ok=True, parents=True)
+        if self.save_preds_path is not None:
+            (self.save_preds_path / part).mkdir(exist_ok=True, parents=True)
+        if self.save_targets_path is not None:
+            (self.save_targets_path / part).mkdir(exist_ok=True, parents=True)
 
-        save_dir = Path.joinpath(self.save_path, part)
+        save_preds_dir = Path.joinpath(self.save_preds_path, part)
+        save_targets_dir = Path.joinpath(self.save_targets_path, part)
 
         with torch.no_grad():
             for batch_idx, batch in tqdm(
@@ -190,7 +195,8 @@ class Inferencer(BaseTrainer):
                     batch=batch,
                     part=part,
                     metrics=self.evaluation_metrics,
-                    save_dir=save_dir,
+                    save_preds_dir=save_preds_dir,
+                    save_targets_dir=save_targets_dir,
                 )
 
         return self.evaluation_metrics.result()

@@ -43,15 +43,20 @@ def main(config):
 
     # get metrics
     metrics = {"inference": []}
-    for metric_config in config.metrics.get("inference", []):
-        # use text_encoder in metrics
-        metrics["inference"].append(
-            instantiate(metric_config, text_encoder=text_encoder)
-        )
+    if config.metrics is not None:
+        for metric_config in config.metrics.get("inference", []):
+            # use text_encoder in metrics
+            metrics["inference"].append(
+                instantiate(metric_config, text_encoder=text_encoder)
+            )
 
     # save_path for model predictions
-    save_path = Path(config.inferencer.save_path)
-    save_path.mkdir(exist_ok=True, parents=True)
+    save_preds_path = Path(config.inferencer.save_preds_path)
+    save_preds_path.mkdir(exist_ok=True, parents=True)
+    save_targets_path = None
+    if config.inferencer.save_targets_path is not None:
+        save_targets_path = Path(config.inferencer.save_targets_path)
+        save_targets_path.mkdir(exist_ok=True, parents=True)
 
     inferencer = Inferencer(
         model=model,
@@ -60,7 +65,8 @@ def main(config):
         dataloaders=dataloaders,
         text_encoder=text_encoder,
         batch_transforms=batch_transforms,
-        save_path=save_path,
+        save_preds_path=save_preds_path,
+        save_targets_path=save_targets_path,
         metrics=metrics,
         skip_model_load=False,
     )
